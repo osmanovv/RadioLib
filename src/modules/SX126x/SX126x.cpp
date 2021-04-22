@@ -1534,7 +1534,7 @@ int16_t SX126x::SPItransfer(uint8_t* cmd, uint8_t cmdLen, bool write, uint8_t* d
   digitalWrite(_mod->getCs(), LOW);
 
   // ensure BUSY is low (state machine ready)
-  uint32_t start = millis();
+  unsigned long start = millis();
   while(digitalRead(_mod->getGpio())) {
     yield();
     if(millis() - start >= timeout) {
