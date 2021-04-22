@@ -1531,14 +1531,17 @@ int16_t SX126x::SPItransfer(uint8_t* cmd, uint8_t cmdLen, bool write, uint8_t* d
   #endif
 
   // pull NSS low
-  digitalWrite(_mod->getCs(), LOW);
+  uint8_t cs = _mod->getCs();
+  if(cs != RADIOLIB_NC)
+    digitalWrite(cs, LOW);
 
   // ensure BUSY is low (state machine ready)
   unsigned long start = millis();
   while(digitalRead(_mod->getGpio())) {
     yield();
     if(millis() - start >= timeout) {
-      digitalWrite(_mod->getCs(), HIGH);
+      if(cs != RADIOLIB_NC)
+        digitalWrite(cs, HIGH);
       return(ERR_SPI_CMD_TIMEOUT);
     }
   }
@@ -1598,7 +1601,8 @@ int16_t SX126x::SPItransfer(uint8_t* cmd, uint8_t cmdLen, bool write, uint8_t* d
 
   // stop transfer
   spi->endTransaction();
-  digitalWrite(_mod->getCs(), HIGH);
+  if(cs != RADIOLIB_NC)
+    digitalWrite(cs, HIGH);
 
   // wait for BUSY to go high and then low
   if(waitForBusy) {
