@@ -163,7 +163,7 @@ int16_t SX126x::reset(bool verify) {
   }
 
   // set mode to standby - SX126x often refuses first few commands after reset
-  uint32_t start = millis();
+  unsigned long start = millis();
   while(true) {
     // try to set mode to standby
     int16_t state = standby();
@@ -218,7 +218,7 @@ int16_t SX126x::transmit(uint8_t* data, size_t len, uint8_t addr) {
   RADIOLIB_ASSERT(state);
 
   // wait for packet transmission or timeout
-  uint32_t start = micros();
+  unsigned long start = micros();
   while(!digitalRead(_mod->getIrq())) {
     yield();
     if(micros() - start > timeout) {
@@ -227,7 +227,7 @@ int16_t SX126x::transmit(uint8_t* data, size_t len, uint8_t addr) {
       return(ERR_TX_TIMEOUT);
     }
   }
-  uint32_t elapsed = micros() - start;
+  unsigned long elapsed = micros() - start;
 
   // update data rate
   _dataRate = (len*8.0)/((float)elapsed/1000000.0);
@@ -278,7 +278,7 @@ int16_t SX126x::receive(uint8_t* data, size_t len) {
   RADIOLIB_ASSERT(state);
 
   // wait for packet reception or timeout
-  uint32_t start = micros();
+  unsigned long start = micros();
   while(!digitalRead(_mod->getIrq())) {
     yield();
     if(micros() - start > timeout) {
