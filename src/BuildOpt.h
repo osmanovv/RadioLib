@@ -51,7 +51,7 @@
 
   // the following must be defined if the Arduino core does not support SoftwareSerial library
   //#define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-  //#define RADIOLIB_HARDWARE_SERIAL_PORT               Serial1
+  //#define RADIOLIB_HARDWARE_SERIAL_PORT               &Serial1
 
   // the following must be defined if the Arduino core does not support tone function
   //#define RADIOLIB_TONE_UNSUPPORTED
@@ -133,7 +133,7 @@
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
     #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-    #define RADIOLIB_HARDWARE_SERIAL_PORT               Serial1
+    #define RADIOLIB_HARDWARE_SERIAL_PORT               &Serial1
 
     // ESP32 doesn't support tone(), but it can be emulated via LED control peripheral
     #define RADIOLIB_TONE_UNSUPPORTED
@@ -152,7 +152,7 @@
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
     #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-    #define RADIOLIB_HARDWARE_SERIAL_PORT               Serial1
+    #define RADIOLIB_HARDWARE_SERIAL_PORT               &Serial1
 
     // slow down SX126x/8x SPI on this platform
     #define RADIOLIB_SPI_SLOWDOWN
@@ -170,7 +170,7 @@
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
     #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-    #define RADIOLIB_HARDWARE_SERIAL_PORT               Serial1
+    #define RADIOLIB_HARDWARE_SERIAL_PORT               &Serial1
 
     // slow down SX126x/8x SPI on this platform
     #define RADIOLIB_SPI_SLOWDOWN
@@ -188,7 +188,7 @@
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
     #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-    #define RADIOLIB_HARDWARE_SERIAL_PORT               Serial1
+    #define RADIOLIB_HARDWARE_SERIAL_PORT               &Serial1
 
   #elif defined(__SAM3X8E__)
     // Arduino Due
@@ -203,10 +203,10 @@
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
     #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-    #define RADIOLIB_HARDWARE_SERIAL_PORT               Serial1
+    #define RADIOLIB_HARDWARE_SERIAL_PORT               &Serial1
     #define RADIOLIB_TONE_UNSUPPORTED
 
-  #elif (defined(NRF52832_XXAA) || defined(NRF52840_XXAA)) && !defined(ARDUINO_ARDUINO_NANO33BLE)
+  #elif defined(NRF52_SERIES) && !defined(ARDUINO_ARDUINO_NANO33BLE)
     // Adafruit nRF52 boards
     #define RADIOLIB_PLATFORM                           "Adafruit nRF52"
     #define RADIOLIB_PIN_TYPE                           uint32_t
@@ -215,6 +215,7 @@
     #define RADIOLIB_INTERRUPT_STATUS                   RADIOLIB_PIN_STATUS
     #define RADIOLIB_DIGITAL_PIN_TO_INTERRUPT(p)        digitalPinToInterrupt(p)
     #define RADIOLIB_NC                                 (0xFFFFFFFF)
+    #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
     #define RADIOLIB_DEFAULT_SPI                        SPI
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
@@ -258,7 +259,7 @@
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
     #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-    #define RADIOLIB_HARDWARE_SERIAL_PORT               Serial1
+    #define RADIOLIB_HARDWARE_SERIAL_PORT               &Serial1
 
     // Apollo3 uses mbed libraries, which already contain ESP8266 driver
     #define RADIOLIB_EXCLUDE_ESP8266
@@ -279,7 +280,7 @@
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
     #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-    #define RADIOLIB_HARDWARE_SERIAL_PORT               Serial1
+    #define RADIOLIB_HARDWARE_SERIAL_PORT               &Serial1
 
     // Nano 33 BLE uses mbed libraries, which already contain ESP8266 driver
     #define RADIOLIB_EXCLUDE_ESP8266
@@ -297,7 +298,7 @@
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
     #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-    #define RADIOLIB_HARDWARE_SERIAL_PORT               Serial1
+    #define RADIOLIB_HARDWARE_SERIAL_PORT               &Serial1
 
     // Arduino Portenta H7 uses mbed libraries, which already contain ESP8266 driver
     #define RADIOLIB_EXCLUDE_ESP8266
@@ -315,7 +316,7 @@
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
     #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-    #define RADIOLIB_HARDWARE_SERIAL_PORT               Serial1
+    #define RADIOLIB_HARDWARE_SERIAL_PORT               &Serial1
 
   #elif defined(ARDUINO_ARCH_MEGAAVR)
     // MegaCoreX by MCUdude (https://github.com/MCUdude/MegaCoreX)
@@ -330,6 +331,16 @@
     #define RADIOLIB_PROGMEM                            PROGMEM
     #define RADIOLIB_PROGMEM_READ_BYTE(addr)            pgm_read_byte(addr)
 
+  #elif defined(PORTDUINO)
+    // Portduino (i.e. Arduino APIs but on top of Linux)
+    #define RADIOLIB_PLATFORM                           "Portduino"
+    #define RADIOLIB_PIN_TYPE                           uint8_t
+    #define RADIOLIB_PIN_MODE                           PinMode
+    #define RADIOLIB_PIN_STATUS                         PinStatus
+    #define RADIOLIB_INTERRUPT_STATUS                   RADIOLIB_PIN_STATUS
+    #define RADIOLIB_NC                                 (0xFF)
+    #define RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
+  
   #else
     // other platforms not covered by the above list - this may or may not work
     #define RADIOLIB_PLATFORM                           "Unknown"

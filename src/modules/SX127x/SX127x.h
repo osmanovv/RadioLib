@@ -1040,6 +1040,17 @@ class SX127x: public PhysicalLayer {
     */
     void readBit(RADIOLIB_PIN_TYPE pin);
 
+    /*!
+      \brief Reads i2c registers to see if the device thinks IRQ/DIO0 is asserted
+
+      \returns \ref the current 8 pending irq flag bits (or 0 for nothing pending)
+    */
+    uint8_t getPendingIRQ();
+
+    #ifdef RADIOLIB_DEBUG
+      void regDump();
+    #endif
+
 #if !defined(RADIOLIB_GODMODE) && !defined(RADIOLIB_LOW_LEVEL)
   protected:
 #endif

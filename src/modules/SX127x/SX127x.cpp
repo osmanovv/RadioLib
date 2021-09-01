@@ -8,7 +8,7 @@ SX127x::SX127x(Module* mod) : PhysicalLayer(SX127X_FREQUENCY_STEP_SIZE, SX127X_M
 int16_t SX127x::begin(uint8_t chipVersion, uint8_t syncWord, uint16_t preambleLength) {
   // set module properties
   _mod->init(RADIOLIB_USE_SPI);
-  Module::pinMode(_mod->getIrq(), INPUT);
+  Module::pinMode(_mod->getIrq(), INPUT_PULLUP);
   Module::pinMode(_mod->getGpio(), INPUT);
 
   // try to find the SX127x chip
@@ -414,7 +414,12 @@ void SX127x::setDio0Action(void (*func)(void)) {
   Module::attachInterrupt(RADIOLIB_DIGITAL_PIN_TO_INTERRUPT(_mod->getIrq()), func, RISING);
 }
 
-void SX127x::clearDio0Action() {
+// Only needed on ESP32 targets. FIXME - move someplace better
+#ifndef IRAM_ATTR
+#define IRAM_ATTR
+#endif
+
+void IRAM_ATTR SX127x::clearDio0Action() {
   Module::detachInterrupt(RADIOLIB_DIGITAL_PIN_TO_INTERRUPT(_mod->getIrq()));
 }
 
@@ -1008,6 +1013,12 @@ int16_t SX127x::setRSSIConfig(uint8_t smoothingSamples, int8_t offset) {
   state = _mod->SPIsetRegValue(SX127X_REG_RSSI_CONFIG, offset, 7, 3);
   state |= _mod->SPIsetRegValue(SX127X_REG_RSSI_CONFIG, smoothingSamples, 2, 0);
   return(state);
+}
+
+uint8_t SX127x::getPendingIRQ() {
+  // Note: the mask register uses 0 to mean UNMASKED
+  uint8_t f = _mod->SPIgetRegValue(SX127X_REG_IRQ_FLAGS), m = ~_mod->SPIgetRegValue(SX127X_REG_IRQ_FLAGS_MASK);
+  return f & m;
 }
 
 int16_t SX127x::setEncoding(uint8_t encoding) {

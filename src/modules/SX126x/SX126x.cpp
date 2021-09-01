@@ -170,7 +170,7 @@ int16_t SX126x::reset(bool verify) {
   }
 
   // set mode to standby - SX126x often refuses first few commands after reset
-  uint32_t start = Module::millis();
+  unsigned long start = Module::millis();
   while(true) {
     // try to set mode to standby
     int16_t state = standby();
@@ -225,7 +225,7 @@ int16_t SX126x::transmit(uint8_t* data, size_t len, uint8_t addr) {
   RADIOLIB_ASSERT(state);
 
   // wait for packet transmission or timeout
-  uint32_t start = Module::micros();
+  unsigned long start = Module::micros();
   while(!Module::digitalRead(_mod->getIrq())) {
     Module::yield();
     if(Module::micros() - start > timeout) {
@@ -234,7 +234,7 @@ int16_t SX126x::transmit(uint8_t* data, size_t len, uint8_t addr) {
       return(ERR_TX_TIMEOUT);
     }
   }
-  uint32_t elapsed = Module::micros() - start;
+  unsigned long elapsed = Module::micros() - start;
 
   // update data rate
   _dataRate = (len*8.0)/((float)elapsed/1000000.0);
@@ -285,7 +285,7 @@ int16_t SX126x::receive(uint8_t* data, size_t len) {
   RADIOLIB_ASSERT(state);
 
   // wait for packet reception or timeout
-  uint32_t start = Module::micros();
+  unsigned long start = Module::micros();
   while(!Module::digitalRead(_mod->getIrq())) {
     Module::yield();
     if(Module::micros() - start > timeout) {
@@ -554,7 +554,8 @@ int16_t SX126x::startReceiveDutyCycleAuto(uint16_t senderPreambleLength, uint16_
 
 int16_t SX126x::startReceiveCommon() {
   // set DIO mapping
-  int16_t state = setDioIrqParams(SX126X_IRQ_RX_DONE | SX126X_IRQ_TIMEOUT | SX126X_IRQ_CRC_ERR | SX126X_IRQ_HEADER_ERR, SX126X_IRQ_RX_DONE);
+  int16_t state = setDioIrqParams(SX126X_IRQ_PREAMBLE_DETECTED | SX126X_IRQ_HEADER_VALID | SX126X_IRQ_RX_DONE | SX126X_IRQ_TIMEOUT | SX126X_IRQ_CRC_ERR | SX126X_IRQ_HEADER_ERR, 
+      SX126X_IRQ_RX_DONE | SX126X_IRQ_CRC_ERR | SX126X_IRQ_HEADER_ERR);
   RADIOLIB_ASSERT(state);
 
   // set buffer pointers
@@ -707,6 +708,27 @@ int16_t SX126x::setCurrentLimit(float currentLimit) {
 
   // update register
   return(writeRegister(SX126X_REG_OCP_CONFIGURATION, &rawLimit, 1));
+}
+
+int16_t SX126x::setRxGain(bool highGain) {
+  if(highGain) {
+    // We also need to add this register to the retension memory per 9.6 of datasheet
+    // othwerwise the setting will be discarded if the user is using SetRxDutyCycle
+
+    uint8_t s = 0x01;
+    int16_t err;
+    if((err = writeRegister(SX126X_REG_RX_GAIN_RETENTION_0, &s, 1)) != ERR_NONE)
+      return err;
+    s = 0x08;
+    if((err = writeRegister(SX126X_REG_RX_GAIN_RETENTION_1, &s, 1)) != ERR_NONE)
+      return err;
+    s = 0xac;
+    if((err = writeRegister(SX126X_REG_RX_GAIN_RETENTION_2, &s, 1)) != ERR_NONE)
+      return err;
+  }
+  // calculate raw value
+  uint8_t r = highGain ? 0x96 : 0x94; // Per datasheet section 9.6 two magic values
+  return(writeRegister(SX126X_REG_RX_GAIN, &r, 1));
 }
 
 float SX126x::getCurrentLimit() {
@@ -1622,17 +1644,21 @@ int16_t SX126x::SPItransfer(uint8_t* cmd, uint8_t cmdLen, bool write, uint8_t* d
   #endif
 
   // pull NSS low
-  Module::digitalWrite(_mod->getCs(), LOW);
+  uint8_t cs = _mod->getCs();
+  if(cs != RADIOLIB_NC)
+    Module::digitalWrite(cs, LOW);
 
   // ensure BUSY is low (state machine ready)
-  uint32_t start = Module::millis();
+  unsigned long start = Module::millis();
   while(Module::digitalRead(_mod->getGpio())) {
     Module::yield();
     if(Module::millis() - start >= timeout) {
-      Module::digitalWrite(_mod->getCs(), HIGH);
+      if(cs != RADIOLIB_NC)
+        Module::digitalWrite(cs, HIGH);
       return(ERR_SPI_CMD_TIMEOUT);
     }
   }
+  delayMicroseconds(1000); // If switching from sleep to standby datasheet says min delay of 100uS before clocking out MOSI, but I needed 1ms!
 
   // start transfer
   spi->beginTransaction(spiSettings);
@@ -1689,7 +1715,8 @@ int16_t SX126x::SPItransfer(uint8_t* cmd, uint8_t cmdLen, bool write, uint8_t* d
 
   // stop transfer
   spi->endTransaction();
-  Module::digitalWrite(_mod->getCs(), HIGH);
+  if(cs != RADIOLIB_NC)
+    Module::digitalWrite(cs, HIGH);
 
   // wait for BUSY to go high and then low
   if(waitForBusy) {

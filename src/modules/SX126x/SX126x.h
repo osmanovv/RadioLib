@@ -647,6 +647,15 @@ class SX126x: public PhysicalLayer {
     int16_t setRxBandwidth(float rxBw);
 
     /*!
+      \brief Sets receiver into either high gain mode or power saving mode.  Default is power saving.
+
+      \param highGain true for high gain mode
+
+      \returns \ref status_codes
+    */
+    int16_t setRxGain(bool highGain);
+
+    /*!
       \brief Sets time-bandwidth product of Gaussian filter applied for shaping.
       Allowed values are RADIOLIB_SHAPING_0_3, RADIOLIB_SHAPING_0_5, RADIOLIB_SHAPING_0_7 or RADIOLIB_SHAPING_1_0.
       Set to RADIOLIB_SHAPING_NONE to disable data shaping.
@@ -901,6 +910,8 @@ class SX126x: public PhysicalLayer {
    */
    void readBit(RADIOLIB_PIN_TYPE pin);
 
+   uint16_t getIrqStatus();
+    
 #ifndef RADIOLIB_GODMODE
   protected:
 #endif
@@ -914,7 +925,6 @@ class SX126x: public PhysicalLayer {
     int16_t writeBuffer(uint8_t* data, uint8_t numBytes, uint8_t offset = 0x00);
     int16_t readBuffer(uint8_t* data, uint8_t numBytes);
     int16_t setDioIrqParams(uint16_t irqMask, uint16_t dio1Mask, uint16_t dio2Mask = SX126X_IRQ_NONE, uint16_t dio3Mask = SX126X_IRQ_NONE);
-    uint16_t getIrqStatus();
     int16_t clearIrqStatus(uint16_t clearIrqParams = SX126X_IRQ_ALL);
     int16_t setRfFrequency(uint32_t frf);
     int16_t calibrateImage(uint8_t* data);
