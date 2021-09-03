@@ -1,7 +1,10 @@
-#ifndef _RADIOLIB_SX1280_H
+#if !defined(_RADIOLIB_SX1280_H)
 #define _RADIOLIB_SX1280_H
 
 #include "../../TypeDef.h"
+
+#if !defined(RADIOLIB_EXCLUDE_SX128X)
+
 #include "../../Module.h"
 #include "SX128x.h"
 #include "SX1281.h"
@@ -49,10 +52,12 @@ class SX1280: public SX1281 {
     */
     float getRangingResult();
 
-#ifndef RADIOLIB_GODMODE
+#if !defined(RADIOLIB_GODMODE)
   private:
 #endif
 
 };
+
+#endif
 
 #endif

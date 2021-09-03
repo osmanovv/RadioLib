@@ -1,7 +1,10 @@
-#ifndef _RADIOLIB_SX1272_H
+#if !defined(_RADIOLIB_SX1272_H)
 #define _RADIOLIB_SX1272_H
 
 #include "../../TypeDef.h"
+
+#if !defined(RADIOLIB_EXCLUDE_SX127X)
+
 #include "../../Module.h"
 #include "SX127x.h"
 
@@ -24,7 +27,7 @@
 #define SX1272_FRF_MID                                0xC0        //  7     0         where F(XOSC) = 32 MHz
 #define SX1272_FRF_LSB                                0x00        //  7     0               FRF = 3 byte value of FRF registers
 
-// SX1272_REG_MODEM_CONFIG_1
+// SX127X_REG_MODEM_CONFIG_1
 #define SX1272_BW_125_00_KHZ                          0b00000000  //  7     6     bandwidth:  125 kHz
 #define SX1272_BW_250_00_KHZ                          0b01000000  //  7     6                 250 kHz
 #define SX1272_BW_500_00_KHZ                          0b10000000  //  7     6                 500 kHz
@@ -39,7 +42,7 @@
 #define SX1272_LOW_DATA_RATE_OPT_OFF                  0b00000000  //  0     0     low data rate optimization disabled
 #define SX1272_LOW_DATA_RATE_OPT_ON                   0b00000001  //  0     0     low data rate optimization enabled, mandatory for SF 11 and 12 with BW 125 kHz
 
-// SX1272_REG_MODEM_CONFIG_2
+// SX127X_REG_MODEM_CONFIG_2
 #define SX1272_AGC_AUTO_OFF                           0b00000000  //  2     2     LNA gain set by REG_LNA
 #define SX1272_AGC_AUTO_ON                            0b00000100  //  2     2     LNA gain set by internal AGC loop
 
@@ -116,8 +119,6 @@ class SX1272: public SX127x {
 
       \param syncWord %LoRa sync word. Can be used to distinguish different networks. Note that value 0x34 is reserved for LoRaWAN networks.
 
-      \param power Transmission output power in dBm. Allowed values range from 2 to 17 dBm.
-
       \param currentLimit Trim value for OCP (over current protection) in mA. Can be set to multiplies of 5 in range 45 to 120 mA and to multiples of 10 in range 120 to 240 mA.
       Set to 0 to disable OCP (not recommended).
 
@@ -129,7 +130,7 @@ class SX1272: public SX127x {
 
       \returns \ref status_codes
     */
-    int16_t begin(float freq = 915.0, float bw = 125.0, uint8_t sf = 9, uint8_t cr = 7, uint8_t syncWord = SX127X_SYNC_WORD, int8_t power = 17, uint8_t currentLimit = 100, uint16_t preambleLength = 8, uint8_t gain = 0);
+    int16_t begin(float freq = 915.0, float bw = 125.0, uint8_t sf = 9, uint8_t cr = 7, uint8_t syncWord = SX127X_SYNC_WORD, int8_t power = 10, uint16_t preambleLength = 8, uint8_t gain = 0);
 
     /*!
       \brief FSK modem initialization method. Must be called at least once from Arduino sketch to initialize the module.
@@ -145,21 +146,18 @@ class SX1272: public SX127x {
 
       \param power Transmission output power in dBm. Allowed values range from 2 to 17 dBm.
 
-      \param currentLimit Trim value for OCP (over current protection) in mA. Can be set to multiplies of 5 in range 45 to 120 mA and to multiples of 10 in range 120 to 240 mA.
-      Set to 0 to disable OCP (not recommended).
-
       \param preambleLength Length of FSK preamble in bits.
 
       \param enableOOK Use OOK modulation instead of FSK.
 
       \returns \ref status_codes
     */
-    int16_t beginFSK(float freq = 915.0, float br = 48.0, float rxBw = 125.0, float freqDev = 50.0, int8_t power = 13, uint8_t currentLimit = 100, uint16_t preambleLength = 16, bool enableOOK = false);
-    
+    int16_t beginFSK(float freq = 915.0, float br = 48.0, float rxBw = 125.0, float freqDev = 50.0, int8_t power = 10, uint16_t preambleLength = 16, bool enableOOK = false);
+
     /*!
       \brief Reset method. Will reset the chip to the default state using RST pin.
     */
-    void reset();
+    void reset() override;
 
     // configuration methods
 
@@ -219,14 +217,14 @@ class SX1272: public SX127x {
     int16_t setGain(uint8_t gain);
 
     /*!
-      \brief Sets Gaussian filter bandwidth-time product that will be used for data shaping.
-      Allowed values are 0.3, 0.5 or 1.0. Set to 0 to disable data shaping. Only available in FSK mode with FSK modulation.
+      \brief Sets Gaussian filter bandwidth-time product that will be used for data shaping. Only available in FSK mode with FSK modulation.
+      Allowed values are RADIOLIB_SHAPING_0_3, RADIOLIB_SHAPING_0_5 or RADIOLIB_SHAPING_1_0. Set to RADIOLIB_SHAPING_NONE to disable data shaping.
 
       \param sh Gaussian shaping bandwidth-time product that will be used for data shaping
 
       \returns \ref status_codes
     */
-    int16_t setDataShaping(float sh);
+    int16_t setDataShaping(uint8_t sh) override;
 
     /*!
       \brief Sets filter cutoff frequency that will be used for data shaping.
@@ -242,32 +240,75 @@ class SX1272: public SX127x {
     /*!
       \brief Gets recorded signal strength indicator of the latest received packet for LoRa modem, or current RSSI level for FSK modem.
 
+      \param skipReceive Set to true to skip putting radio in receive mode for the RSSI measurement in FKS/OOK mode.
+
       \returns Last packet RSSI for LoRa modem, or current RSSI level for FSK modem.
     */
-    float getRSSI();
+    float getRSSI(bool skipReceive = false);
 
     /*!
       \brief Enables/disables CRC check of received packets.
 
-      \param enableCRC Enable (true) or disable (false) CRC.
+      \param enable Enable (true) or disable (false) CRC.
+
+      \param mode Set CRC mode to SX127X_CRC_WHITENING_TYPE_CCITT for CCITT, polynomial X16 + X12 + X5 + 1 (false) or SX127X_CRC_WHITENING_TYPE_IBM for IBM, polynomial X16 + X15 + X2 + 1 (true). Only valid in FSK mode.
 
       \returns \ref status_codes
     */
-    int16_t setCRC(bool enableCRC);
+    int16_t setCRC(bool enable, bool mode = false);
 
-#ifndef RADIOLIB_GODMODE
+    /*!
+      \brief Forces LoRa low data rate optimization. Only available in LoRa mode. After calling this method, LDRO will always be set to
+      the provided value, regardless of symbol length. To re-enable automatic LDRO configuration, call SX1278::autoLDRO()
+
+      \param enable Force LDRO to be always enabled (true) or disabled (false).
+
+      \returns \ref status_codes
+    */
+    int16_t forceLDRO(bool enable);
+
+    /*!
+      \brief Re-enables automatic LDRO configuration. Only available in LoRa mode. After calling this method, LDRO will be enabled automatically
+      when symbol length exceeds 16 ms.
+
+      \returns \ref status_codes
+    */
+    int16_t autoLDRO();
+
+    /*!
+      \brief Set implicit header mode for future reception/transmission.
+
+      \returns \ref status_codes
+    */
+    int16_t implicitHeader(size_t len);
+
+    /*!
+      \brief Set explicit header mode for future reception/transmission.
+
+      \param len Payload length in bytes.
+
+      \returns \ref status_codes
+    */
+    int16_t explicitHeader();
+
+#if !defined(RADIOLIB_GODMODE)
   protected:
 #endif
     int16_t setBandwidthRaw(uint8_t newBandwidth);
     int16_t setSpreadingFactorRaw(uint8_t newSpreadingFactor);
     int16_t setCodingRateRaw(uint8_t newCodingRate);
+    int16_t setHeaderType(uint8_t headerType, size_t len = 0xFF);
 
     int16_t configFSK();
 
-#ifndef RADIOLIB_GODMODE
+#if !defined(RADIOLIB_GODMODE)
   private:
 #endif
+    bool _ldroAuto = true;
+    bool _ldroEnabled = false;
 
 };
+
+#endif
 
 #endif

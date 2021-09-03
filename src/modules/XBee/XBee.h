@@ -1,4 +1,4 @@
-#ifndef _RADIOLIB_XBEE_H
+#if !defined(_RADIOLIB_XBEE_H) && !defined(RADIOLIB_EXCLUDE_XBEE)
 #define _RADIOLIB_XBEE_H
 
 #include "../../ISerial.h"
@@ -79,9 +79,9 @@ class XBeeSerial: public ISerial {
 
       \param panId 8-byte PAN ID to be used, in the form of uppercase hexadecimal string (i.e. 16 characters).
     */
-    int16_t setPanId(const char* panID);
+    int16_t setPanId(const char* panId);
 
-#ifndef RADIOLIB_GODMODE
+#if !defined(RADIOLIB_GODMODE)
   private:
 #endif
     bool enterCmdMode();
@@ -170,22 +170,27 @@ class XBee {
 
       \param panId 8-byte PAN ID to be used, in the form of uppercase hexadecimal string (i.e. 16 characters).
     */
-    int16_t setPanId(uint8_t* panID);
+    int16_t setPanId(uint8_t* panId);
 
-#ifndef RADIOLIB_GODMODE
-  private:
+#if !defined(RADIOLIB_GODMODE) && !defined(RADIOLIB_LOW_LEVEL)
+  protected:
 #endif
     Module* _mod;
-    uint8_t _frameID;
-    size_t _frameLength;
-    bool _frameHeaderProcessed;
+
+#if !defined(RADIOLIB_GODMODE)
+  protected:
+#endif
+
+    uint8_t _frameID = 0x01;
+    size_t _frameLength = 0;
+    bool _frameHeaderProcessed = false;
 
     #ifdef RADIOLIB_STATIC_ONLY
       char _packetData[RADIOLIB_STATIC_ARRAY_SIZE];
     #else
       char* _packetData = new char[0];
     #endif
-    uint8_t _packetSource[8];
+    uint8_t _packetSource[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
     int16_t confirmChanges();
 

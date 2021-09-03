@@ -1,4 +1,4 @@
-#ifndef _RADIOLIB_TYPES_H
+#if !defined(_RADIOLIB_TYPES_H)
 #define _RADIOLIB_TYPES_H
 
 #include "BuildOpt.h"
@@ -83,6 +83,66 @@
   \brief Both RTS and CTS.
 */
 #define RADIOLIB_UART_FLOW_BOTH                       0x03
+
+/*!
+  \}
+*/
+
+/*!
+  \defgroup config_shaping Data shaping filter values aliases.
+
+  \{
+*/
+
+/*!
+  \brief No shaping.
+*/
+#define RADIOLIB_SHAPING_NONE                         0x00
+
+/*!
+  \brief Gaussin shaping filter, BT = 0.3
+*/
+#define RADIOLIB_SHAPING_0_3                          0x01
+
+/*!
+  \brief Gaussin shaping filter, BT = 0.5
+*/
+#define RADIOLIB_SHAPING_0_5                          0x02
+
+/*!
+  \brief Gaussin shaping filter, BT = 0.7
+*/
+#define RADIOLIB_SHAPING_0_7                          0x03
+
+/*!
+  \brief Gaussin shaping filter, BT = 1.0
+*/
+#define RADIOLIB_SHAPING_1_0                          0x04
+
+/*!
+  \}
+*/
+
+/*!
+  \defgroup config_encoding Encoding type aliases.
+
+  \{
+*/
+
+/*!
+  \brief Non-return to zero - no encoding.
+*/
+#define RADIOLIB_ENCODING_NRZ                         0x00
+
+/*!
+  \brief Manchester encoding.
+*/
+#define RADIOLIB_ENCODING_MANCHESTER                  0x01
+
+/*!
+  \brief Whitening.
+*/
+#define RADIOLIB_ENCODING_WHITENING                   0x02
 
 /*!
   \}
@@ -223,6 +283,11 @@
 */
 #define ERR_INVALID_ENCODING                          -23
 
+/*!
+  \brief LoRa packet header has been damaged.
+*/
+#define ERR_LORA_HEADER_DAMAGED                        -24
+
 // RF69-specific status codes
 
 /*!
@@ -259,6 +324,11 @@
   \brief The current modulation is invalid for the requested operation.
 */
 #define ERR_INVALID_MODULATION                        -107
+
+/*!
+  \brief Supplied Peak type is invalid.
+*/
+#define ERR_INVALID_OOK_RSSI_PEAK_TYPE                -108
 
 // ESP8266 status codes
 

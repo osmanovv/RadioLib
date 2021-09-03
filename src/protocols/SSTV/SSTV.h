@@ -1,7 +1,10 @@
-#ifndef _RADIOLIB_SSTV_H
+#if !defined(_RADIOLIB_SSTV_H)
 #define _RADIOLIB_SSTV_H
 
 #include "../../TypeDef.h"
+
+#if !defined(RADIOLIB_EXCLUDE_SSTV)
+
 #include "../PhysicalLayer/PhysicalLayer.h"
 #include "../AFSK/AFSK.h"
 
@@ -121,14 +124,16 @@ class SSTVClient {
 
       \param phy Pointer to the wireless module providing PhysicalLayer communication.
     */
-    SSTVClient(PhysicalLayer* phy);
+    explicit SSTVClient(PhysicalLayer* phy);
 
+    #if !defined(RADIOLIB_EXCLUDE_AFSK)
     /*!
       \brief Constructor for AFSK mode.
 
       \param audio Pointer to the AFSK instance providing audio.
     */
-    SSTVClient(AFSKClient* phy);
+    explicit SSTVClient(AFSKClient* audio);
+    #endif
 
     // basic methods
 
@@ -143,8 +148,9 @@ class SSTVClient {
 
       \returns \ref status_codes
     */
-    int16_t begin(float base, SSTVMode_t mode, float correction = 1.0);
+    int16_t begin(float base, const SSTVMode_t& mode, float correction = 1.0);
 
+    #if !defined(RADIOLIB_EXCLUDE_AFSK)
     /*!
       \brief Initialization method for AFSK.
 
@@ -154,7 +160,8 @@ class SSTVClient {
 
       \returns \ref status_codes
     */
-    int16_t begin(SSTVMode_t mode, float correction = 1.0);
+    int16_t begin(const SSTVMode_t& mode, float correction = 1.0);
+    #endif
 
     /*!
       \brief Sends out tone at 1900 Hz.
@@ -178,19 +185,23 @@ class SSTVClient {
 
       \returns Picture height of the currently configured SSTV mode in pixels.
     */
-    uint16_t getPictureHeight();
+    uint16_t getPictureHeight() const;
 
 #ifndef RADIOLIB_GODMODE
   private:
 #endif
     PhysicalLayer* _phy;
+    #if !defined(RADIOLIB_EXCLUDE_AFSK)
     AFSKClient* _audio;
+    #endif
 
-    uint32_t _base;
-    SSTVMode_t _mode;
-    bool _firstLine;
+    uint32_t _base = 0;
+    SSTVMode_t _mode = Scottie1;
+    bool _firstLine = true;
 
     void tone(float freq, uint32_t len = 0);
 };
+
+#endif
 
 #endif

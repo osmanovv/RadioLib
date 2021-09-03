@@ -1,4 +1,5 @@
 #include "AX25.h"
+#if !defined(RADIOLIB_EXCLUDE_AX25)
 
 AX25Frame::AX25Frame(const char* destCallsign, uint8_t destSSID, const char* srcCallsign, uint8_t srcSSID, uint8_t control)
 : AX25Frame(destCallsign, destSSID, srcCallsign, srcSSID, control, 0, NULL, 0) {
@@ -48,6 +49,10 @@ AX25Frame::AX25Frame(const char* destCallsign, uint8_t destSSID, const char* src
   }
 }
 
+AX25Frame::AX25Frame(const AX25Frame& frame) {
+  *this = frame;
+}
+
 AX25Frame::~AX25Frame() {
   #ifndef RADIOLIB_STATIC_ONLY
     // deallocate info field
@@ -66,6 +71,41 @@ AX25Frame::~AX25Frame() {
   #endif
 }
 
+AX25Frame& AX25Frame::operator=(const AX25Frame& frame) {
+  // destination callsign/SSID
+  memcpy(this->destCallsign, frame.destCallsign, strlen(frame.destCallsign));
+  this->destCallsign[strlen(frame.destCallsign)] = '\0';
+  this->destSSID = frame.destSSID;
+
+  // source callsign/SSID
+  memcpy(this->srcCallsign, frame.srcCallsign, strlen(frame.srcCallsign));
+  this->srcCallsign[strlen(frame.srcCallsign)] = '\0';
+  this->srcSSID = frame.srcSSID;
+
+  // repeaters
+  this->numRepeaters = frame.numRepeaters;
+  for(uint8_t i = 0; i < this->numRepeaters; i++) {
+    memcpy(this->repeaterCallsigns[i], frame.repeaterCallsigns[i], strlen(frame.repeaterCallsigns[i]));
+  }
+  memcpy(this->repeaterSSIDs, frame.repeaterSSIDs, this->numRepeaters);
+
+  // control field
+  this->control = frame.control;
+
+  // sequence numbers
+  this->rcvSeqNumber = frame.rcvSeqNumber;
+  this->sendSeqNumber = frame.sendSeqNumber;
+
+  // PID field
+  this->protocolID = frame.protocolID;
+
+  // info field
+  this->infoLen = frame.infoLen;
+  memcpy(this->info, frame.info, this->infoLen);
+
+  return(*this);
+}
+
 int16_t AX25Frame::setRepeaters(char** repeaterCallsigns, uint8_t* repeaterSSIDs, uint8_t numRepeaters) {
   // check number of repeaters
   if((numRepeaters < 1) || (numRepeaters > 8)) {
@@ -73,8 +113,7 @@ int16_t AX25Frame::setRepeaters(char** repeaterCallsigns, uint8_t* repeaterSSIDs
   }
 
   // check repeater configuration
-  if(!(((repeaterCallsigns == NULL) && (repeaterSSIDs == NULL) && (numRepeaters == 0)) ||
-       ((repeaterCallsigns != NULL) && (repeaterSSIDs != NULL) && (numRepeaters != 0)))) {
+  if((repeaterCallsigns == NULL) || (repeaterSSIDs == NULL)) {
     return(ERR_INVALID_NUM_REPEATERS);
   }
   for(uint16_t i = 0; i < numRepeaters; i++) {
@@ -112,13 +151,17 @@ void AX25Frame::setSendSequence(uint8_t seqNumber) {
 
 AX25Client::AX25Client(PhysicalLayer* phy) {
   _phy = phy;
+  #if !defined(RADIOLIB_EXCLUDE_AFSK)
   _audio = nullptr;
+  #endif
 }
 
+#if !defined(RADIOLIB_EXCLUDE_AFSK)
 AX25Client::AX25Client(AFSKClient* audio) {
   _phy = audio->_phy;
   _audio = audio;
 }
+#endif
 
 int16_t AX25Client::begin(const char* srcCallsign, uint8_t srcSSID, uint8_t preambleLen) {
   // set source SSID
@@ -136,15 +179,8 @@ int16_t AX25Client::begin(const char* srcCallsign, uint8_t srcSSID, uint8_t prea
   // save preamble length
   _preambleLen = preambleLen;
 
-  // set module frequency deviation to 0 if using FSK
-  int16_t state = ERR_NONE;
-  if(_audio == nullptr) {
-    state = _phy->setFrequencyDeviation(0);
-    RADIOLIB_ASSERT(state);
-
-    state = _phy->setEncoding(0);
-  }
-  return(state);
+  // configure for direct mode
+  return(_phy->startDirect());
 }
 
 int16_t AX25Client::transmit(const char* str, const char* destCallsign, uint8_t destSSID) {
@@ -189,7 +225,7 @@ int16_t AX25Client::sendFrame(AX25Frame* frame) {
 
   // set destination callsign - all address field bytes are shifted by one bit to make room for HDLC address extension bit
   memset(frameBuffPtr, ' ' << 1, AX25_MAX_CALLSIGN_LEN);
-  for(uint8_t i = 0; i < strlen(frame->destCallsign); i++) {
+  for(size_t i = 0; i < strlen(frame->destCallsign); i++) {
     *(frameBuffPtr + i) = frame->destCallsign[i] << 1;
   }
   frameBuffPtr += AX25_MAX_CALLSIGN_LEN;
@@ -199,7 +235,7 @@ int16_t AX25Client::sendFrame(AX25Frame* frame) {
 
   // set source callsign - all address field bytes are shifted by one bit to make room for HDLC address extension bit
   memset(frameBuffPtr, ' ' << 1, AX25_MAX_CALLSIGN_LEN);
-  for(uint8_t i = 0; i < strlen(frame->srcCallsign); i++) {
+  for(size_t i = 0; i < strlen(frame->srcCallsign); i++) {
     *(frameBuffPtr + i) = frame->srcCallsign[i] << 1;
   }
   frameBuffPtr += AX25_MAX_CALLSIGN_LEN;
@@ -210,7 +246,7 @@ int16_t AX25Client::sendFrame(AX25Frame* frame) {
   // set repeater callsigns
   for(uint16_t i = 0; i < frame->numRepeaters; i++) {
     memset(frameBuffPtr, ' ' << 1, AX25_MAX_CALLSIGN_LEN);
-    for(uint8_t j = 0; j < strlen(frame->repeaterCallsigns[i]); j++) {
+    for(size_t j = 0; j < strlen(frame->repeaterCallsigns[i]); j++) {
       *(frameBuffPtr + j) = frame->repeaterCallsigns[i][j] << 1;
     }
     frameBuffPtr += AX25_MAX_CALLSIGN_LEN;
@@ -247,7 +283,7 @@ int16_t AX25Client::sendFrame(AX25Frame* frame) {
 
   // flip bit order
   for(size_t i = 0; i < frameBuffLen; i++) {
-    frameBuff[i] = flipBits(frameBuff[i]);
+    frameBuff[i] = Module::flipBits(frameBuff[i]);
   }
 
   // calculate FCS
@@ -263,10 +299,13 @@ int16_t AX25Client::sendFrame(AX25Frame* frame) {
     uint8_t stuffedFrameBuff[RADIOLIB_STATIC_ARRAY_SIZE];
   #endif
 
+  // initialize buffer to all zeros
+  memset(stuffedFrameBuff, 0x00, _preambleLen + 1 + (6*frameBuffLen)/5 + 2);
+
   // stuff bits (skip preamble and both flags)
   uint16_t stuffedFrameBuffLenBits = 8*(_preambleLen + 1);
   uint8_t count = 0;
-  for(uint16_t i = 0; i < frameBuffLen + 2; i++) {
+  for(size_t i = 0; i < frameBuffLen + 2; i++) {
     for(int8_t shift = 7; shift >= 0; shift--) {
       uint16_t stuffedFrameBuffPos = stuffedFrameBuffLenBits + 7 - 2*(stuffedFrameBuffLenBits%8);
       if((frameBuff[i] >> shift) & 0x01) {
@@ -343,9 +382,8 @@ int16_t AX25Client::sendFrame(AX25Frame* frame) {
 
   // transmit
   int16_t state = ERR_NONE;
-  if(_audio == nullptr) {
-    state = _phy->transmit(stuffedFrameBuff, stuffedFrameBuffLen);
-  } else {
+  #if !defined(RADIOLIB_EXCLUDE_AFSK)
+  if(_audio != nullptr) {
     _phy->transmitDirect();
 
     // iterate over all bytes in the buffer
@@ -353,21 +391,27 @@ int16_t AX25Client::sendFrame(AX25Frame* frame) {
 
       // check each bit
       for(uint16_t mask = 0x80; mask >= 0x01; mask >>= 1) {
-        uint32_t start = micros();
+        uint32_t start = Module::micros();
         if(stuffedFrameBuff[i] & mask) {
           _audio->tone(AX25_AFSK_MARK, false);
         } else {
           _audio->tone(AX25_AFSK_SPACE, false);
         }
-        while(micros() - start < 833) {
-          yield();
+        while(Module::micros() - start < AX25_AFSK_TONE_DURATION) {
+          Module::yield();
         }
       }
 
     }
 
     _audio->noTone();
+
+  } else {
+  #endif
+    state = _phy->transmit(stuffedFrameBuff, stuffedFrameBuffLen);
+  #if !defined(RADIOLIB_EXCLUDE_AFSK)
   }
+  #endif
 
   // deallocate memory
   #ifndef RADIOLIB_STATIC_ONLY
@@ -384,8 +428,8 @@ int16_t AX25Client::sendFrame(AX25Frame* frame) {
   https://creativecommons.org/licenses/by-sa/4.0/
 */
 uint16_t AX25Client::getFrameCheckSequence(uint8_t* buff, size_t len) {
-  uint8_t outBit = 0;
-  uint16_t mask = 0x0000;
+  uint8_t outBit;
+  uint16_t mask;
   uint16_t shiftReg = CRC_CCITT_INIT;
 
   for(size_t i = 0; i < len; i++) {
@@ -397,20 +441,7 @@ uint16_t AX25Client::getFrameCheckSequence(uint8_t* buff, size_t len) {
     }
   }
 
-  return(flipBits16(~shiftReg));
+  return(Module::flipBits16(~shiftReg));
 }
 
-uint8_t AX25Client::flipBits(uint8_t b) {
-  b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
-  b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
-  b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
-  return b;
-}
-
-uint16_t AX25Client::flipBits16(uint16_t i) {
-  i = (i & 0xFF00) >> 8 | (i & 0x00FF) << 8;
-  i = (i & 0xF0F0) >> 4 | (i & 0x0F0F) << 4;
-  i = (i & 0xCCCC) >> 2 | (i & 0x3333) << 2;
-  i = (i & 0xAAAA) >> 1 | (i & 0x5555) << 1;
-  return i;
-}
+#endif

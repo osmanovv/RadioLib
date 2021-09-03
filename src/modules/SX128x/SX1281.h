@@ -1,7 +1,10 @@
-#ifndef _RADIOLIB_SX1281_H
+#if !defined(_RADIOLIB_SX1281_H)
 #define _RADIOLIB_SX1281_H
 
 #include "../../TypeDef.h"
+
+#if !defined(RADIOLIB_EXCLUDE_SX128X)
+
 #include "../../Module.h"
 #include "SX128x.h"
 
@@ -19,10 +22,12 @@ class SX1281: public SX128x {
     */
     SX1281(Module* mod);
 
-#ifndef RADIOLIB_GODMODE
+#if !defined(RADIOLIB_GODMODE)
   private:
 #endif
 
 };
+
+#endif
 
 #endif
