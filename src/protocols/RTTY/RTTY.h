@@ -1,7 +1,10 @@
-#ifndef _RADIOLIB_RTTY_H
+#if !defined(_RADIOLIB_RTTY_H)
 #define _RADIOLIB_RTTY_H
 
 #include "../../TypeDef.h"
+
+#if !defined(RADIOLIB_EXCLUDE_RTTY)
+
 #include "../PhysicalLayer/PhysicalLayer.h"
 #include "../AFSK/AFSK.h"
 
@@ -12,10 +15,10 @@
 // ITA2 character table: - position in array corresponds to 5-bit ITA2 code
 //                       - characters to the left are in letters shift, characters to the right in figures shift
 //                       - characters marked 0x7F do not have ASCII equivalent
-static const char ITA2Table[ITA2_LENGTH][2] PROGMEM = {{'\0', '\0'}, {'E', '3'}, {'\n', '\n'}, {'A', '-'}, {' ', ' '}, {'S', '\''}, {'I', '8'}, {'U', '7'},
-                                                       {'\r', '\r'}, {'D', 0x05}, {'R', '4'}, {'J', '\a'}, {'N', ','}, {'F', '!'}, {'C', ':'}, {'K', '('},
-                                                       {'T', '5'}, {'Z', '+'}, {'L', ')'}, {'W', '2'}, {'H', 0x7F}, {'Y', '6'}, {'P', '0'}, {'Q', '1'},
-                                                       {'O', '9'}, {'B', '?'}, {'G', '&'}, {0x7F, 0x7F}, {'M', '.'}, {'X', '/'}, {'V', ';'}, {0x7F, 0x7F}};
+static const char ITA2Table[ITA2_LENGTH][2] RADIOLIB_PROGMEM = {{'\0', '\0'}, {'E', '3'}, {'\n', '\n'}, {'A', '-'}, {' ', ' '}, {'S', '\''}, {'I', '8'}, {'U', '7'},
+                                                                {'\r', '\r'}, {'D', 0x05}, {'R', '4'}, {'J', '\a'}, {'N', ','}, {'F', '!'}, {'C', ':'}, {'K', '('},
+                                                                {'T', '5'}, {'Z', '+'}, {'L', ')'}, {'W', '2'}, {'H', 0x7F}, {'Y', '6'}, {'P', '0'}, {'Q', '1'},
+                                                                {'O', '9'}, {'B', '?'}, {'G', '&'}, {0x7F, 0x7F}, {'M', '.'}, {'X', '/'}, {'V', ';'}, {0x7F, 0x7F}};
 
 /*!
   \class ITA2String
@@ -29,14 +32,14 @@ class ITA2String {
 
       \param c ASCII-encoded character to encode as ITA2.
     */
-    ITA2String(char c);
+    explicit ITA2String(char c);
 
     /*!
       \brief Default string constructor.
 
       \param str ASCII-encoded string to encode as ITA2.
     */
-    ITA2String(const char* str);
+    explicit ITA2String(const char* str);
 
     /*!
       \brief Default destructor.
@@ -64,12 +67,12 @@ class ITA2String {
     #ifdef RADIOLIB_STATIC_ONLY
       char _str[RADIOLIB_STATIC_ARRAY_SIZE];
     #else
-      char* _str = new char[1];
+      char* _str;
     #endif
     size_t _len;
     size_t _ita2Len;
 
-    uint16_t getBits(char c);
+    static uint16_t getBits(char c);
 };
 
 // supported encoding schemes
@@ -89,14 +92,16 @@ class RTTYClient {
 
       \param phy Pointer to the wireless module providing PhysicalLayer communication.
     */
-    RTTYClient(PhysicalLayer* phy);
+    explicit RTTYClient(PhysicalLayer* phy);
 
+    #if !defined(RADIOLIB_EXCLUDE_AFSK)
     /*!
       \brief Constructor for AFSK mode.
 
       \param audio Pointer to the AFSK instance providing audio.
     */
-    RTTYClient(AFSKClient* audio);
+    explicit RTTYClient(AFSKClient* audio);
+    #endif
 
     // basic methods
 
@@ -141,7 +146,7 @@ class RTTYClient {
     size_t println(void);
     size_t println(__FlashStringHelper*);
     size_t println(ITA2String &);
-    size_t println(const String &s);
+    size_t println(const String &);
     size_t println(const char[]);
     size_t println(char);
     size_t println(unsigned char, int = DEC);
@@ -155,14 +160,16 @@ class RTTYClient {
   private:
 #endif
     PhysicalLayer* _phy;
+    #if !defined(RADIOLIB_EXCLUDE_AFSK)
     AFSKClient* _audio;
+    #endif
 
-    uint8_t _encoding;
-    uint32_t _base, _baseHz;
-    uint32_t _shift, _shiftHz;
-    uint32_t _bitDuration;
-    uint8_t _dataBits;
-    uint8_t _stopBits;
+    uint8_t _encoding = ASCII;
+    uint32_t _base = 0, _baseHz = 0;
+    uint32_t _shift = 0, _shiftHz = 0;
+    uint32_t _bitDuration = 0;
+    uint8_t _dataBits = 0;
+    uint8_t _stopBits = 0;
 
     void mark();
     void space();
@@ -173,5 +180,7 @@ class RTTYClient {
     int16_t transmitDirect(uint32_t freq = 0, uint32_t freqHz = 0);
     int16_t standby();
 };
+
+#endif
 
 #endif

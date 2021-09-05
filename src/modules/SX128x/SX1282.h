@@ -1,12 +1,13 @@
-#ifndef _RADIOLIB_SX1282_H
+#if !defined(_RADIOLIB_SX1282_H)
 #define _RADIOLIB_SX1282_H
 
 #include "../../TypeDef.h"
+
+#if !defined(RADIOLIB_EXCLUDE_SX128X)
+
 #include "../../Module.h"
 #include "SX128x.h"
 #include "SX1280.h"
-
-// TODO implement advanced ranging
 
 /*!
   \class SX1282
@@ -22,10 +23,12 @@ class SX1282: public SX1280 {
     */
     SX1282(Module* mod);
 
-#ifndef RADIOLIB_GODMODE
+#if !defined(RADIOLIB_GODMODE)
   private:
 #endif
 
 };
+
+#endif
 
 #endif

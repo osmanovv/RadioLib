@@ -1,7 +1,10 @@
-#ifndef _RADIOLIB_RF69_H
+#if !defined(_RADIOLIB_RF69_H)
 #define _RADIOLIB_RF69_H
 
 #include "../../TypeDef.h"
+
+#if !defined(RADIOLIB_EXCLUDE_RF69)
+
 #include "../../Module.h"
 
 #include "../../protocols/PhysicalLayer/PhysicalLayer.h"
@@ -88,6 +91,7 @@
 #define RF69_REG_AES_KEY_16                           0x4D
 #define RF69_REG_TEMP_1                               0x4E
 #define RF69_REG_TEMP_2                               0x4F
+#define RF69_REG_TEST_LNA                             0x58
 #define RF69_REG_TEST_PA1                             0x5A
 #define RF69_REG_TEST_PA2                             0x5C
 #define RF69_REG_TEST_DAGC                            0x6F
@@ -158,6 +162,9 @@
 
 // RF69_REG_LISTEN_3
 #define RF69_LISTEN_COEF_RX                           0x20        //  7     0     duration of Rx phase in Listen mode
+
+// RF69_REG_VERSION
+#define RF69_CHIP_VERSION                             0x24        //  7     0
 
 // RF69_REG_PA_LEVEL
 #define RF69_PA0_OFF                                  0b00000000  //  7     7     PA0 disabled
@@ -403,6 +410,10 @@
 #define RF69_AES_OFF                                  0b00000000  //  0     0     AES encryption disabled (default)
 #define RF69_AES_ON                                   0b00000001  //  0     0     AES encryption enabled, payload size limited to 66 bytes
 
+// RF69_REG_TEST_LNA
+#define RF69_TEST_LNA_BOOST_NORMAL                    0x1B        //  7     0
+#define RF69_TEST_LNA_BOOST_HIGH                      0x2D        //  7     0
+
 // RF69_REG_TEMP_1
 #define RF69_TEMP_MEAS_START                          0b00001000  //  3     3     trigger temperature measurement
 #define RF69_TEMP_MEAS_RUNNING                        0b00000100  //  2     2     temperature measurement status: on-going
@@ -454,11 +465,13 @@ class RF69: public PhysicalLayer {
 
       \param rxBw Receiver bandwidth in kHz. Defaults to 125.0 kHz.
 
-      \param power Output power in dBm. Defaults to 13 dBm.
+      \param power Output power in dBm. Defaults to 10 dBm.
+
+      \param preambleLen Preamble Length in bits. Defaults to 16 bits.
 
       \returns \ref status_codes
     */
-    int16_t begin(float freq = 434.0, float br = 48.0, float freqDev = 50.0, float rxBw = 125.0, int8_t power = 13);
+    int16_t begin(float freq = 434.0, float br = 48.0, float freqDev = 50.0, float rxBw = 125.0, int8_t power = 10, uint8_t preambleLen = 16);
 
     /*!
       \brief Reset method. Will reset the chip to the default state using RST pin.
@@ -477,7 +490,7 @@ class RF69: public PhysicalLayer {
 
       \returns \ref status_codes
     */
-    int16_t transmit(uint8_t* data, size_t len, uint8_t addr = 0);
+    int16_t transmit(uint8_t* data, size_t len, uint8_t addr = 0) override;
 
     /*!
       \brief Blocking binary receive method.
@@ -489,7 +502,7 @@ class RF69: public PhysicalLayer {
 
       \returns \ref status_codes
     */
-    int16_t receive(uint8_t* data, size_t len);
+    int16_t receive(uint8_t* data, size_t len) override;
 
     /*!
       \brief Sets the module to sleep mode.
@@ -503,7 +516,7 @@ class RF69: public PhysicalLayer {
 
       \returns \ref status_codes
     */
-    int16_t standby();
+    int16_t standby() override;
 
     /*!
       \brief Starts direct mode transmission.
@@ -512,14 +525,14 @@ class RF69: public PhysicalLayer {
 
       \returns \ref status_codes
     */
-    int16_t transmitDirect(uint32_t frf = 0);
+    int16_t transmitDirect(uint32_t frf = 0) override;
 
     /*!
       \brief Starts direct mode reception.
 
       \returns \ref status_codes
     */
-    int16_t receiveDirect();
+    int16_t receiveDirect() override;
 
     /*!
       \brief Stops direct mode. It is required to call this method to switch from direct transmissions to packet-based transmissions.
@@ -587,7 +600,7 @@ class RF69: public PhysicalLayer {
 
       \returns \ref status_codes
     */
-    int16_t startTransmit(uint8_t* data, size_t len, uint8_t addr = 0);
+    int16_t startTransmit(uint8_t* data, size_t len, uint8_t addr = 0) override;
 
     /*!
       \brief Interrupt-driven receive method. GDO0 will be activated when full packet is received.
@@ -605,7 +618,7 @@ class RF69: public PhysicalLayer {
 
       \returns \ref status_codes
     */
-    int16_t readData(uint8_t* data, size_t len);
+    int16_t readData(uint8_t* data, size_t len) override;
 
     // configuration methods
 
@@ -643,7 +656,7 @@ class RF69: public PhysicalLayer {
 
       \returns \ref status_codes
     */
-    int16_t setFrequencyDeviation(float freqDev);
+    int16_t setFrequencyDeviation(float freqDev) override;
 
     /*!
       \brief Sets output power. Allowed values range from -18 to 13 dBm for low power modules (RF69C/CW) or -2 to 20 dBm (RF69H/HC/HCW).
@@ -666,6 +679,15 @@ class RF69: public PhysicalLayer {
       \param maxErrBits Maximum allowed number of bit errors in received sync word. Defaults to 0.
     */
     int16_t setSyncWord(uint8_t* syncWord, size_t len, uint8_t maxErrBits = 0);
+
+    /*!
+      \brief Sets preamble length.
+
+      \param preambleLen Preamble length to be set (in bits), allowed values: 16, 24, 32, 48, 64, 96, 128 and 192.
+
+      \returns \ref status_codes
+    */
+    int16_t setPreambleLength(uint8_t preambleLen);
 
     /*!
       \brief Sets node address. Calling this method will also enable address filtering for node address only.
@@ -715,7 +737,25 @@ class RF69: public PhysicalLayer {
 
       \returns Length of last received packet in bytes.
     */
-    size_t getPacketLength(bool update = true);
+    size_t getPacketLength(bool update = true) override;
+
+    /*!
+      \brief Enables/disables OOK modulation instead of FSK.
+
+      \param enableOOK Enable (true) or disable (false) OOK.
+
+      \returns \ref status_codes
+    */
+    int16_t setOOK(bool enableOOK);
+
+    /*!
+      \brief Selects the type of threshold in the OOK data slicer
+
+      \param type Threshold type: RF69_OOK_THRESH_PEAK(default), RF69_OOK_THRESH_FIXED or RF69_OOK_THRESH_AVERAGE
+
+      \returns \ref status_codes
+    */
+    int16_t setOokThresholdType(uint8_t type);
 
     /*!
       \brief Set modem in fixed packet length mode.
@@ -754,7 +794,7 @@ class RF69: public PhysicalLayer {
      /*!
       \brief Enable CRC filtering and generation.
 
-      \param crcOn Set or unset promiscuous mode.
+      \param crcOn Set or unset CRC filtering.
 
       \returns \ref status_codes
     */
@@ -771,22 +811,32 @@ class RF69: public PhysicalLayer {
 
     /*!
       \brief Sets Gaussian filter bandwidth-time product that will be used for data shaping.
-      Allowed values are 0.3, 0.5 or 1.0. Set to 0 to disable data shaping.
+      Allowed values are RADIOLIB_SHAPING_0_3, RADIOLIB_SHAPING_0_5 or RADIOLIB_SHAPING_1_0. Set to RADIOLIB_SHAPING_NONE to disable data shaping.
 
       \param sh Gaussian shaping bandwidth-time product that will be used for data shaping
 
       \returns \ref status_codes
     */
-    int16_t setDataShaping(float sh);
+    int16_t setDataShaping(uint8_t sh) override;
 
     /*!
       \brief Sets transmission encoding.
+       Allowed values are RADIOLIB_ENCODING_NRZ, RADIOLIB_ENCODING_MANCHESTER and RADIOLIB_ENCODING_WHITENING.
 
-      \param encoding Encoding to be used. Set to 0 for NRZ, 1 for Manchester and 2 for whitening.
+      \param encoding Encoding to be used.
 
       \returns \ref status_codes
     */
-    int16_t setEncoding(uint8_t encoding);
+    int16_t setEncoding(uint8_t encoding) override;
+
+    /*!
+    \brief Enable/disable LNA Boost mode (disabled by default).
+
+    \param value True to enable, false to disable.
+
+    \returns \ref status_codes
+    */
+    int16_t setLnaTestBoost(bool value);
 
     /*!
       \brief Gets RSSI (Recorded Signal Strength Indicator) of the last received packet.
@@ -795,33 +845,79 @@ class RF69: public PhysicalLayer {
     */
     float getRSSI();
 
-#ifndef RADIOLIB_GODMODE
+    /*!
+      \brief Some modules contain external RF switch controlled by two pins. This function gives RadioLib control over those two pins to automatically switch Rx and Tx state.
+      When using automatic RF switch control, DO NOT change the pin mode of rxEn or txEn from Arduino sketch!
+
+      \param rxEn RX enable pin.
+
+      \param txEn TX enable pin.
+    */
+    void setRfSwitchPins(RADIOLIB_PIN_TYPE rxEn, RADIOLIB_PIN_TYPE txEn);
+
+    /*!
+     \brief Get one truly random byte from RSSI noise.
+
+     \returns TRNG byte.
+   */
+    uint8_t randomByte();
+
+    /*!
+     \brief Read version SPI register. Should return RF69_CHIP_VERSION (0x24) if SX127x is connected and working.
+
+     \returns Version register contents or \ref status_codes
+   */
+    int16_t getChipVersion();
+
+    /*!
+      \brief Set interrupt service routine function to call when data bit is receveid in direct mode.
+
+      \param func Pointer to interrupt service routine.
+    */
+    void setDirectAction(void (*func)(void));
+
+    /*!
+      \brief Function to read and process data bit in direct reception mode.
+
+      \param pin Pin on which to read.
+    */
+    void readBit(RADIOLIB_PIN_TYPE pin);
+
+#if !defined(RADIOLIB_GODMODE) && !defined(RADIOLIB_LOW_LEVEL)
   protected:
 #endif
     Module* _mod;
 
-    float _br;
-    float _rxBw;
-    int16_t _tempOffset;
-    int8_t _power;
+#if !defined(RADIOLIB_GODMODE)
+  protected:
+#endif
 
-    size_t _packetLength;
-    bool _packetLengthQueried;
-    uint8_t _packetLengthConfig;
+    float _freq = 0;
+    float _br = 0;
+    float _rxBw = 0;
+    bool _ook = false;
+    int16_t _tempOffset = 0;
+    int8_t _power = 0;
 
-    bool _promiscuous;
+    size_t _packetLength = 0;
+    bool _packetLengthQueried = false;
+    uint8_t _packetLengthConfig = RF69_PACKET_FORMAT_VARIABLE;
 
-    uint8_t _syncWordLength;
+    bool _promiscuous = false;
+
+    uint8_t _syncWordLength = 2;
 
     int16_t config();
     int16_t directMode();
     int16_t setPacketMode(uint8_t mode, uint8_t len);
 
-#ifndef RADIOLIB_GODMODE
+#if !defined(RADIOLIB_GODMODE)
   private:
 #endif
     int16_t setMode(uint8_t mode);
     void clearIRQFlags();
 };
+
+#endif
 
 #endif

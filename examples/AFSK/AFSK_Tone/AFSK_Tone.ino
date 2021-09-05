@@ -11,6 +11,9 @@
     - CC1101
     - Si443x/RFM2x
 
+   For default module settings, see the wiki page
+   https://github.com/jgromes/RadioLib/wiki/Default-configuration
+
    For full API reference, see the GitHub Pages
    https://jgromes.github.io/RadioLib/
 */
@@ -23,35 +26,40 @@
 // DIO0 pin:  2
 // RESET pin: 9
 // DIO1 pin:  3
-SX1278 fsk = new Module(10, 2, 9, 3);
+SX1278 radio = new Module(10, 2, 9, 3);
 
 // create AFSK client instance using the FSK module
-// this requires connection to the module direct 
+// this requires connection to the module direct
 // input pin, here connected to Arduino pin 5
 // SX127x/RFM9x:  DIO2
 // RF69:          DIO2
 // SX1231:        DIO2
 // CC1101:        GDO2
 // Si443x/RFM2x:  GPIO
-AFSKClient audio(&fsk, 5);
+AFSKClient audio(&radio, 5);
 
 void setup() {
   Serial.begin(9600);
 
-  // initialize SX1278
+  // initialize SX1278 with default settings
   Serial.print(F("[SX1278] Initializing ... "));
-  // carrier frequency:           434.0 MHz
-  // bit rate:                    48.0 kbps
-  // frequency deviation:         50.0 kHz
-  // Rx bandwidth:                125.0 kHz
-  // output power:                13 dBm
-  // current limit:               100 mA
-  int state = fsk.beginFSK();
+  int state = radio.beginFSK();
 
   // when using one of the non-LoRa modules for AFSK
-  // (RF69, CC1101,, Si4432 etc.), use the basic begin() method
-  // int state = fsk.begin();
+  // (RF69, CC1101, Si4432 etc.), use the basic begin() method
+  // int state = radio.begin();
 
+  if(state == ERR_NONE) {
+    Serial.println(F("success!"));
+  } else {
+    Serial.print(F("failed, code "));
+    Serial.println(state);
+    while(true);
+  }
+
+  // initialize AFSK client
+  Serial.print(F("[AFSK] Initializing ... "));
+  state = audio.begin();
   if(state == ERR_NONE) {
     Serial.println(F("success!"));
   } else {
@@ -62,14 +70,16 @@ void setup() {
 }
 
 void loop() {
-  // AFSKClient can be used to transmit tones, 
+  // AFSKClient can be used to transmit tones,
   // same as Arduino tone() function
-
+  
   // 400 Hz tone
+  Serial.print(F("[AFSK] 400 Hz tone ... "));
   audio.tone(400);
   delay(1000);
 
   // silence
+  Serial.println(F("done!"));
   audio.noTone();
   delay(1000);
 

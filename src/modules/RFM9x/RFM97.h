@@ -1,7 +1,10 @@
-#ifndef _RADIOLIB_RFM97_H
+#if !defined(_RADIOLIB_RFM97_H)
 #define _RADIOLIB_RFM97_H
 
 #include "../../TypeDef.h"
+
+#if !defined(RADIOLIB_EXCLUDE_RFM9X)
+
 #include "../../Module.h"
 #include "../SX127x/SX127x.h"
 #include "../SX127x/SX1278.h"
@@ -35,10 +38,12 @@ class RFM97: public RFM95 {
     */
     int16_t setSpreadingFactor(uint8_t sf);
 
-#ifndef RADIOLIB_GODMODE
+#if !defined(RADIOLIB_GODMODE)
   private:
 #endif
 
 };
+
+#endif
 
 #endif

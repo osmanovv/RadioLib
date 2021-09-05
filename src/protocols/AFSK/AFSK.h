@@ -1,7 +1,10 @@
-#ifndef _RADIOLIB_AFSK_H
+#if !defined(_RADIOLIB_AFSK_H)
 #define _RADIOLIB_AFSK_H
 
 #include "../../TypeDef.h"
+
+#if !defined(RADIOLIB_EXCLUDE_AFSK)
+
 #include "../../Module.h"
 
 #include "../PhysicalLayer/PhysicalLayer.h"
@@ -21,6 +24,13 @@ class AFSKClient  {
       \param pin The pin that will be used for audio output.
     */
     AFSKClient(PhysicalLayer* phy, RADIOLIB_PIN_TYPE pin);
+
+    /*!
+      \brief Initialization method.
+
+      \returns \ref status_codes
+    */
+    int16_t begin();
 
     /*!
       \brief Start transmitting audio tone.
@@ -53,5 +63,7 @@ class AFSKClient  {
     friend class SSTVClient;
     friend class AX25Client;
 };
+
+#endif
 
 #endif
