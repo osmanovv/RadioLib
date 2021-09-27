@@ -92,7 +92,7 @@ int16_t SX127x::beginFSK(uint8_t chipVersion, float br, float freqDev, float rxB
   state = SX127x::setAFCBandwidth(rxBw);
   RADIOLIB_ASSERT(state);
 
-  //sets AFC&AGC trigger to RSSI and preamble detect
+  // sets AFC&AGC trigger to RSSI and preamble detect
   state = SX127x::setAFCAGCTrigger(SX127X_RX_TRIGGER_BOTH);
   RADIOLIB_ASSERT(state);
 
@@ -323,6 +323,9 @@ int16_t SX127x::transmitDirect(uint32_t frf) {
   int16_t state = directMode();
   RADIOLIB_ASSERT(state);
 
+  // apply fixes to errata
+  errataFix(false);
+
   // start transmitting
   return(setMode(SX127X_TX));
 }
@@ -340,6 +343,9 @@ int16_t SX127x::receiveDirect() {
   int16_t state = directMode();
   RADIOLIB_ASSERT(state);
 
+  // apply fixes to errata
+  errataFix(true);
+
   // start receiving
   return(setMode(SX127X_RX));
 }
@@ -351,6 +357,10 @@ int16_t SX127x::directMode() {
 
   // set DIO mapping
   state = _mod->SPIsetRegValue(SX127X_REG_DIO_MAPPING_1, SX127X_DIO1_CONT_DCLK | SX127X_DIO2_CONT_DATA, 5, 2);
+  RADIOLIB_ASSERT(state);
+
+  // enable receiver startup without preamble or RSSI
+  state = SX127x::setAFCAGCTrigger(SX127X_RX_TRIGGER_NONE);
   RADIOLIB_ASSERT(state);
 
   // set continuous mode
@@ -380,6 +390,9 @@ int16_t SX127x::startReceive(uint8_t len, uint8_t mode) {
     if(_sf == 6) {
       state |= _mod->SPIsetRegValue(SX127X_REG_PAYLOAD_LENGTH, len);
     }
+
+    // apply fixes to errata
+    errataFix(true);
 
     // clear interrupt flags
     clearIRQFlags();
@@ -450,6 +463,9 @@ int16_t SX127x::startTransmit(uint8_t* data, size_t len, uint8_t addr) {
 
     // set DIO mapping
     _mod->SPIsetRegValue(SX127X_REG_DIO_MAPPING_1, SX127X_DIO0_TX_DONE, 7, 6);
+
+    // apply fixes to errata
+    errataFix(false);
 
     // clear interrupt flags
     clearIRQFlags();

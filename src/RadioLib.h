@@ -23,6 +23,7 @@
     - AX.25 (AX25Client)
     - SSTV (SSTVClient)
     - Hellschreiber (HellClient)
+    - 4-FSK (FSK4Client)
   - TransportLayer protocols
     - HTTP (HTTPClient)
     - MQTT (MQTTClient)
@@ -98,6 +99,7 @@
 #include "protocols/Morse/Morse.h"
 #include "protocols/RTTY/RTTY.h"
 #include "protocols/SSTV/SSTV.h"
+#include "protocols/FSK4/FSK4.h"
 
 // transport layer protocols
 #include "protocols/TransportLayer/TransportLayer.h"
