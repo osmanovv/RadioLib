@@ -514,7 +514,7 @@ class SerialModule: public Module {
       \param serial HardwareSerial to be used on platforms that do not support SoftwareSerial. Defaults to Serial1.
     */
     #ifdef RADIOLIB_SOFTWARE_SERIAL_UNSUPPORTED
-        SerialModule(RADIOLIB_PIN_TYPE rx, RADIOLIB_PIN_TYPE tx, RADIOLIB_PIN_TYPE rst = RADIOLIB_NC, HardwareSerial* serial = &RADIOLIB_HARDWARE_SERIAL_PORT);
+        SerialModule(RADIOLIB_PIN_TYPE rx, RADIOLIB_PIN_TYPE tx, RADIOLIB_PIN_TYPE rst = RADIOLIB_NC, HardwareSerial* serial = RADIOLIB_HARDWARE_SERIAL_PORT);
     #else
         SerialModule(RADIOLIB_PIN_TYPE rx, RADIOLIB_PIN_TYPE tx, RADIOLIB_PIN_TYPE rst = RADIOLIB_NC, HardwareSerial* serial = nullptr);
     #endif
